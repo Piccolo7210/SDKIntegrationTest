@@ -8,7 +8,7 @@ This README explains how to prepare your machine, add the Neurotec SDK files, an
 
 Important security note
 -----------------------
-You (and other developers) must NOT commit the following folders to version control because they contain proprietary SDK artifacts and/or license material:
+You must NOT commit the following folders to version control because they contain proprietary SDK artifacts and/or license material:
 - `Bin/` (contains Neurotec JARs and native libraries)
 - `Licenses/` (license keys, trial files)
 - `utils/` (helper libs distributed with the SDK)
