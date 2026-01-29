@@ -1,0 +1,50 @@
+// demo-build.gradle — sanitized example build file
+// Copy this to build.gradle and fill in the local SDK paths and credentials before building
+
+plugins {
+    id 'org.springframework.boot' version '2.7.5'
+    id 'io.spring.dependency-management' version '1.0.15.RELEASE'
+    id 'java'
+}
+
+group = 'org.neurotecfinger'
+version = '1.0-SNAPSHOT'
+sourceCompatibility = '17'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+tasks.findByName('prepareResources')?.setEnabled(false)
+tasks.findByName('copyScripts')?.setEnabled(false)
+
+repositories {
+    mavenCentral()
+    // Uncomment and use 'flatDir' only if you keep neurotec jars in Bin/Java locally
+    // flatDir { dirs 'Bin/Java' }
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    runtimeOnly 'org.postgresql:postgresql'
+
+    // Lombok (update version as needed)
+    compileOnly 'org.projectlombok:lombok:1.18.28'
+    annotationProcessor 'org.projectlombok:lombok:1.18.28'
+
+    // Neurotec jars: uncomment and update to match your local layout
+    // implementation fileTree(dir: 'Bin/Java', include: ['neurotec-core.jar', 'neurotec-biometrics.jar', 'neurotec-licensing.jar', 'neurotec-devices.jar', 'jna.jar'])
+}
+
+bootRun {
+    // Set java.library.path/jna.library.path to your local native libs before running
+    // systemProperty "java.library.path", "<ABSOLUTE_PATH_TO_NATIVE_LIBS>"
+    // systemProperty "jna.library.path", "<ABSOLUTE_PATH_TO_NATIVE_LIBS>"
+}
+
+// Helpful: run with the wrapper: Windows: .\gradlew.bat clean build
+

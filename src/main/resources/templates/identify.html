@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Biometric Identification</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body { background: #f0f2f5; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .main-card { margin-top: 60px; border: none; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); overflow: hidden; }
+        .card-header { background: #2DCFC2; color: white; padding: 20px; font-weight: bold; font-size: 1.2rem; text-align: center; }
+        .finger-preview { width: 160px; height: 220px; border: 3px dashed #cbd5e0; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; background: #fff; }
+        .finger-preview img { max-width: 100%; max-height: 100%; }
+        .status-text { font-size: 0.9rem; font-weight: 600; color: #6c757d; min-height: 25px; margin-bottom: 15px; text-align: center; }
+        .result-box { display: none; padding: 15px; border-radius: 8px; margin-top: 20px; text-align: center; }
+        .result-success { background: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; }
+        .result-fail { background: #f8d7da; color: #842029; border: 1px solid #f5c2c7; }
+        .btn-scan { background-color: #2DCFC2; border: none; padding: 10px 30px; font-weight: 600; transition: all 0.3s; }
+        .btn-scan:hover { background-color: #25b8ac; transform: translateY(-2px); }
+        .btn-scan:disabled { background-color: #a0e6df; cursor: not-allowed; transform: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card main-card">
+                <div class="card-header">
+                    Fingerprint Identification
+                </div>
+                <div class="card-body p-4">
+                    <div class="finger-preview">
+                        <!-- Use Thymeleaf expression and absolute fallback so the image resolves correctly regardless of URL -->
+                        <img id="finger-img" th:src="@{/images/placeFinger.png}" src="/images/placeFinger.png" alt="Scan Preview">
+                    </div>
+
+                    <div id="status-msg" class="status-text">Ready to scan</div>
+
+                    <div class="text-center">
+                        <button id="btn-scan" class="btn btn-primary btn-scan btn-block">
+                            <span id="spinner" class="spinner-border spinner-border-sm mr-2" role="status" aria-hidden="true" style="display:none"></span>
+                            <span>Scan & Identify</span>
+                        </button>
+                    </div>
+
+                    <div id="result-area" class="result-box">
+                        <h4 id="match-title" class="mb-2"></h4>
+                        <div id="match-details" class="small"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script>
+    $(document).ready(function() {
+        const DRIVER_URL = "http://localhost:1212/fingerprints";
+        const IDENTIFY_API = "/api/identify";
+
+        $('#btn-scan').click(function() {
+            startProcess();
+        });
+
+        function startProcess() {
+            setLoading(true);
+            updateStatus("Initializing Scanner...");
+            $('#result-area').hide();
+            $('#finger-img').attr('src', '/images/placeFinger.png'); // Reset image
+
+            // Step 1: Request Scan from Driver
+            // IMPORTANT: fingerType=unknown prevents saving to DB
+            const params = {
+                Timeout: 10000,
+                Quality: 50,
+                fingerType: 'unknown'
+            };
+
+            $.post(DRIVER_URL + "?" + $.param(params))
+                .done(function(response) {
+                    if (response.data) {
+                        handleScanSuccess(response.data);
+                    } else {
+                        handleError("Scanner timeout or no finger detected.");
+                    }
+                })
+                .fail(function(xhr) {
+                    handleError("Driver Error: Is the scanner service running?");
+                });
+        }
+
+        function handleScanSuccess(data) {
+            updateStatus("Finger captured. Identification in progress...");
+
+            // Display Captured Image
+            if(data.BMPBase64) {
+                $('#finger-img').attr('src', "data:image/png;base64," + data.BMPBase64);
+            }
+
+            // Step 2: Send Template to Backend for Matching
+            $.ajax({
+                url: IDENTIFY_API,
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ nativeTemplate: data.NativeTemplate }),
+                success: function(matchResult) {
+                    setLoading(false);
+                    if (matchResult.matchFound) {
+                        showResult(true, matchResult);
+                    } else {
+                        showResult(false, null);
+                    }
+                },
+                error: function(xhr) {
+                    handleError("Identification Service Error: " + xhr.statusText);
+                }
+            });
+        }
+
+        function showResult(isMatch, data) {
+            const box = $('#result-area');
+            box.removeClass('result-success result-fail').show();
+
+            if (isMatch) {
+                updateStatus("Identification Successful");
+                box.addClass('result-success');
+                $('#match-title').text("Match Found!");
+                $('#match-details').html(`
+                    <strong>Suspect ID:</strong> ${data.suspectId}<br>
+                    <strong>Matched Finger:</strong> ${data.fingerType}<br>
+                    <strong>Score:</strong> ${data.score}
+                `);
+            } else {
+                updateStatus("Process Complete");
+                box.addClass('result-fail');
+                $('#match-title').text("No Match Found");
+                $('#match-details').text("This fingerprint does not exist in the database.");
+            }
+        }
+
+        function handleError(msg) {
+            setLoading(false);
+            updateStatus(msg);
+            $('#status-msg').css('color', '#dc3545');
+        }
+
+        function updateStatus(msg) {
+            $('#status-msg').text(msg).css('color', '#6c757d');
+        }
+
+        function setLoading(isLoading) {
+            $('#btn-scan').prop('disabled', isLoading);
+            if(isLoading) {
+                $('#spinner').show();
+            } else {
+                $('#spinner').hide();
+            }
+        }
+    });
+</script>
+</body>
+</html>

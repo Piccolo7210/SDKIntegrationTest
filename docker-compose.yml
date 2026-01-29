@@ -1,0 +1,17 @@
+version: '3.8'
+services:
+  afis-db:
+    image: postgres:15-alpine
+    container_name: afis_postgres
+    environment:
+      POSTGRES_DB: afis_db
+      POSTGRES_USER: afis_user
+      POSTGRES_PASSWORD: afis_password
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: always
+
+volumes:
+  postgres_data:

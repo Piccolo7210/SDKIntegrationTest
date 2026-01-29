@@ -1,0 +1,27 @@
+# application.properties.example
+# Copy this file to src/main/resources/application.properties and fill in your local settings.
+
+# Server
+server.port=1212
+spring.main.banner-mode=off
+
+# Datasource (PostgreSQL example)
+spring.datasource.url=jdbc:postgresql://localhost:5432/neurotec
+spring.datasource.username=your_db_user
+spring.datasource.password=your_db_password
+spring.datasource.driver-class-name=org.postgresql.Driver
+
+# JPA/Hibernate
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=false
+spring.jpa.properties.hibernate.format_sql=false
+
+# Neurotec license settings (example - update to your env)
+# If using a license server, use NLicense.obtain("<address>", "<port>", "<product>")
+# If you keep trial license files locally, ensure they are copied into Licenses/ and not committed.
+neurotec.license.server.address=localhost
+neurotec.license.server.port=5000
+
+# Placeholders: you can also set these as system properties when starting bootRun
+# -Djava.library.path=./Bin/Win64_x64 -Djna.library.path=./Bin/Win64_x64
+
